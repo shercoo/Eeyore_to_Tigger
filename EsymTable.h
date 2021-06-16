@@ -35,7 +35,8 @@ public:
     int stackPos;
     int regId;
     bool stored;
-    Symbol(string n,int t):name(n),type(t),stored(false)
+    bool isArr;
+    Symbol(string n,int t):name(n),type(t),stored(false),isArr(false)
     {
         if(type==Global)
             name="v"+ to_string(globalCnt++);

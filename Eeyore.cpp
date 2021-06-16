@@ -19,14 +19,23 @@ Symbol* numSymbol=new Symbol("",Symbol::Num);
 
 void loadVal(Symbol* sb,int regId){
     if(sb->type==Symbol::Global){
-        fcode<<"load "<<sb->name<<" "<<regName(regId)<<endl;
-    }
-    else if(sb->type==Symbol::Local
-            ||sb->type==Symbol::Param){
-        if(sb->stored)
-            fcode<<"load "<<sb->stackPos<<" "<<regName(regId)<<endl;
+        if(!sb->isArr)
+            fcode<<"load "<<sb->name<<" "<<regName(regId)<<endl;
         else
-            fcode<<regName(regId)<<" = 0"<<endl;
+            fcode<<"loadaddr "<<sb->name<<" "<<regName(regId)<<endl;
+    }
+    else if(sb->type==Symbol::Local){
+        if(!sb->isArr) {
+            if (sb->stored)
+                fcode << "load " << sb->stackPos << " " << regName(regId) << endl;
+            else
+                fcode << regName(regId) << " = 0" << endl;
+        }
+        else
+            fcode<<"loadaddr "<<sb->stackPos<<" "<<regName(regId)<<endl;
+    }
+    else if(sb->type==Symbol::Param){
+        fcode << "load " << sb->stackPos << " " << regName(regId) << endl;
     }
     else if(sb->type==Symbol::Num){
         fcode<<regName(regId)<<" = "<<sb->name<<endl;
@@ -65,19 +74,23 @@ void Declaration::process() {
     if(!inFunc) {
         if (size <= 0) {
             symbol= currentSymTable->addSymbol(ident, Symbol::Global);
+            symbol->isArr= false;
             cout << symbol->name << " = 0" << endl;
         } else {
             symbol= currentSymTable->addSymbol(ident, Symbol::Global);
+            symbol->isArr= true;
             cout << symbol->name << " = malloc " << size << endl;
         }
     }
     else{
         if (size <= 0) {
             symbol=currentSymTable->addSymbol(ident, Symbol::Local);
+            symbol->isArr= false;
             symbol->stackPos=stackTop;
             stackTop++;
         } else {
             symbol=currentSymTable->addSymbol(ident, Symbol::Local);
+            symbol->isArr= true;
             symbol->stackPos=stackTop;
             stackTop+=size/4;
         }
@@ -89,6 +102,7 @@ void FunctionDef::process() {
     stackTop=args;
     for(int i=0;i<args;i++) {
         Symbol *symbol = currentSymTable->addSymbol("p"+ to_string(i), Symbol::Param);
+        symbol->isArr= false;
         symbol->stackPos = i;
         storeVal(symbol,i+12);
     }
@@ -231,6 +245,7 @@ void Expression::process() {
             break;
 
     }
+    fcode<<endl;
 }
 
 void RightValue::process() {
